@@ -3,11 +3,6 @@ import pandas as pd
 import httpx
 import datetime
 timeout = 600.0
-links = ["https://www.simcompanies.com/api/v3/market/0/1/",
-         "https://www.simcompanies.com/api/v3/market/0/2/",
-         "https://www.simcompanies.com/api/v3/market/0/3/",
-         "https://www.simcompanies.com/api/v3/market/0/4/",
-         "https://www.simcompanies.com/api/v3/market/0/5/"]
 
 def fetch_market_data(db_object):
     market_api_url = "https://www.simcompanies.com/api/v3/market/0/"
@@ -47,7 +42,6 @@ async def _get_all(links, db_object):
                 print(f"Bad data for {result}")
 
 async def _get_resource(link, client):
-    # async with httpx.AsyncClient(limits=httpx.Limits(max_connections=5)) as client:
     print(f"Querying for '{link}'")
     resp = await client.get(link, timeout=timeout)
     print(f"Got data from {link}")
@@ -75,6 +69,7 @@ def _parse_resource(json):
                 "id":               int(last_ask['id']),
                 "date_posted":      datetime.datetime.fromisoformat(last_ask['posted']).replace(tzinfo=None),
                 "date_created":     datetime.datetime.now()}
+        
         return data
 
 def _post_to_db(data, resources, DB_object):
