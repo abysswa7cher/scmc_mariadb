@@ -1,23 +1,23 @@
-import mariadb, sys
+import mariadb, sys, datetime
 from configparser import ConfigParser
-
 mariadb_config = {"host":"scmcmariadbsql.ddns.net", 
                     "port": 3306, 
                     "user":"remote_admin", 
                     "password":"password", 
                     "database":"scmc_dev"}
-
+import pandas as pd
 
 class MarketDB():
 
-    def __init__(self) -> None:
+    def __init__(self, host) -> None:
         self.connection = None
         self.cursor = None
+        self.connect(host)
 
-    def connect(self, config):
-        print("Connecting to MariaDB...")
+    def connect(self, host):
+        print(f"Connecting to {host}")
         try:
-            connection = mariadb.connect(**self._read_config(config))
+            connection = mariadb.connect(**self._read_config(section=host))
         except mariadb.Error as e:
             print(e)
             sys.exit(1)
@@ -44,9 +44,10 @@ class MarketDB():
             print(e)
 
     def insert(self, table_name, columns, values):
-        val_placeholder = "".join(["%s, " if i < len(columns)-1 else "%s" for i, _ in enumerate(columns)])
+        val_placeholder = ("".join(["%s, " if i < len(columns)-1 else "%s" for i, _ in enumerate(columns)])) if type(columns) is list else "%s"
         cols = ", ".join(columns) if type(columns) is list else columns
         query = """insert into {} ({}) values ({})""".format(table_name, cols, val_placeholder)
+        # print(query)
         try:
             self.cursor.execute(query, values)
             self.connection.commit()
@@ -64,7 +65,7 @@ class MarketDB():
         # print(cols, values)
         try:
             self.insert(table_name, cols, values)
-            print(f"Posted\n{*dict,} to {table_name,}")
+            print(f"Posted\n{list(dict.values())} to {str(table_name)}")
         except (Exception, mariadb.Error) as error:
             print("Error: %s" % error)
             self.connection.rollback()
@@ -86,3 +87,14 @@ class MarketDB():
             raise Exception('Section {0} not found in the {1} file'.format(section, filename))
 
         return config
+    
+
+    def get_table(self, table_name: str, columns: list) -> pd.DataFrame:
+
+        query = f"select {', '.join(columns)} from {table_name};"
+        res = pd.read_sql_query(query, self.connection, index_col=None)
+        return res
+    
+db = MarketDB("localhost")
+res = db.get_table("water", "*")
+print(res)

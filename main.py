@@ -19,10 +19,19 @@ parser.add_argument("-U",
                     default=10,
                     help="Sets the amount of minutes to pass between updates.",
                     type=int)
+
+parser.add_argument("-H",
+                    "--host",
+                    nargs='?',
+                    const=1,
+                    default="mariadb",
+                    help="Sets the host to connect to from database.ini.",
+                    type=str)
+
 args = parser.parse_args()
 
 def update_and_post_data_to_db():
-  DB = MarketDB()
+  DB = MarketDB(args.host)
   update_scheduler = us.UpdateScheduler(args.update_timeout)
   
   if not os.path.isfile("data/resources.csv"):
@@ -37,7 +46,7 @@ def update_and_post_data_to_db():
     if update_scheduler.update():
         print("\033[2KUpdating and posting to DB...", end="\r", flush=True)
         
-        DB.connect("database.ini")
+        DB.connect(args.host)
         try:
           if fetch_market_data(DB) == -1:
             update_scheduler.log_last_update()
