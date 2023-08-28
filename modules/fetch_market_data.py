@@ -44,9 +44,9 @@ async def _get_all(links, db_object):
                 print(f"Bad data for {result}")
 
 async def _get_resource(link, client):
-    # print(f"Querying for '{link}'")
+    print(f"Querying for '{link}'")
     resp = await client.get(link, timeout=timeout)
-    # print(f"Got data from {link}")
+    print(f"Got data from {link}")
 
     try:
         resp.raise_for_status()
@@ -64,12 +64,12 @@ def _parse_resource(json):
     if not df.empty:
         df = df.drop(labels=["quality", "fees", "seller"], axis=1)
         last_ask = df.iloc[0]
-        date_posted = last_ask["posted"].replace("-", "").replace(" ", "").replace("T", "")[:16]
+        date_posted = last_ask["posted"].replace("T", "").replace("-", "")[:15]
 
         year = date_posted[:4]
         month = date_posted[4:6]
         day = date_posted[6:8]
-        time = (f"{str(datetime.datetime.strptime(date_posted[8:], '%H:%M:%S').hour)}:{datetime.datetime.strptime(date_posted[8:], '%H:%M:%S').minute}")
+        time = (f"{date_posted[8:10]}:{date_posted[11:13]}")
 
         data = {"kind":             int(last_ask['kind']),
                 "price":            float(last_ask['price']),

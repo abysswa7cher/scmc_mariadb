@@ -65,7 +65,8 @@ class MarketDB():
 
         try:
             self.insert(table_name, cols, values)
-            print(f"Posted\n{list(dict.values())} to {str(table_name)}")
+            # print(f"Posted\n{list(dict.values())} to {str(table_name)}")
+            print(f"Inserted new data to {table_name}")
         except (Exception, mariadb.Error) as error:
             print("Error: %s" % error)
             self.connection.rollback()
