@@ -23,6 +23,7 @@ def fetch_market_data(db_object):
         return -1
     except Exception as e:
         print(e)
+        raise
 
 async def _get_all(links, db_object):
     dtype={"id": int, "kind": int, "quantity": int, "price": float}
@@ -37,14 +38,15 @@ async def _get_all(links, db_object):
 
             if result:
                 data = _parse_resource(result)
+                # print(data)
                 _post_to_db(data, resources, db_object)
             else:
                 print(f"Bad data for {result}")
 
 async def _get_resource(link, client):
-    print(f"Querying for '{link}'")
+    # print(f"Querying for '{link}'")
     resp = await client.get(link, timeout=timeout)
-    print(f"Got data from {link}")
+    # print(f"Got data from {link}")
 
     try:
         resp.raise_for_status()
@@ -62,14 +64,23 @@ def _parse_resource(json):
     if not df.empty:
         df = df.drop(labels=["quality", "fees", "seller"], axis=1)
         last_ask = df.iloc[0]
+        date_posted = last_ask["posted"].replace("-", "").replace(" ", "").replace("T", "")[:16]
+
+        year = date_posted[:4]
+        month = date_posted[4:6]
+        day = date_posted[6:8]
+        time = (f"{str(datetime.datetime.strptime(date_posted[8:], '%H:%M:%S').hour)}:{datetime.datetime.strptime(date_posted[8:], '%H:%M:%S').minute}")
 
         data = {"kind":             int(last_ask['kind']),
                 "price":            float(last_ask['price']),
                 "quantity":         float(last_ask['quantity']),
                 "id":               int(last_ask['id']),
-                "date_posted":      datetime.datetime.fromisoformat(last_ask['posted']).replace(tzinfo=None),
-                "date_created":     datetime.datetime.now()}
-        
+                "year":             year,
+                "month":            month,
+                "day":              day,
+                "time":             time,
+                "added_to_db":     datetime.datetime.now()}
+        # print(data)
         return data
 
 def _post_to_db(data, resources, DB_object):
@@ -80,8 +91,19 @@ def _post_to_db(data, resources, DB_object):
     
     if resource_name != None:
         table_name = f"{resource_name}"
-        columns_create= "kind int, price float, quantity int, id int, date_posted datetime, date_created datetime"
-        DB_object.create_table(table_name, columns_create)
+        if not DB_object._table_exists(table_name):
+
+            columns_create= ''' kind int, 
+                                price float, 
+                                quantity int, 
+                                id int, 
+                                year int, 
+                                month int, 
+                                day int, 
+                                time varchar(8), 
+                                added_to_db datetime'''
+            DB_object.create_table(table_name, columns_create)
+
         DB_object.dict_to_db(data, table_name)
     else:
         print(f"No bids found for {resource_name}")

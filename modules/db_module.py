@@ -1,4 +1,4 @@
-import mariadb, sys, datetime
+import mariadb, sys, datetime, warnings
 from configparser import ConfigParser
 mariadb_config = {"host":"scmcmariadbsql.ddns.net", 
                     "port": 3306, 
@@ -6,7 +6,7 @@ mariadb_config = {"host":"scmcmariadbsql.ddns.net",
                     "password":"password", 
                     "database":"scmc_dev"}
 import pandas as pd
-
+warnings.filterwarnings('ignore')
 class MarketDB():
 
     def __init__(self, host) -> None:
@@ -53,6 +53,7 @@ class MarketDB():
             self.connection.commit()
         except mariadb.Error as e:
             print(e)
+            raise
     
     def _table_exists(self, table_name):
         self.cursor.execute("show tables;")
@@ -62,7 +63,6 @@ class MarketDB():
         cols = list(dict.keys())
         values = tuple(dict.values())
 
-        # print(cols, values)
         try:
             self.insert(table_name, cols, values)
             print(f"Posted\n{list(dict.values())} to {str(table_name)}")
@@ -70,6 +70,7 @@ class MarketDB():
             print("Error: %s" % error)
             self.connection.rollback()
             self.cursor.close()
+            raise
 
     def _read_config(self, filename='database.ini', section='mariadb'):
         parser = ConfigParser()
@@ -92,9 +93,5 @@ class MarketDB():
     def get_table(self, table_name: str, columns: list) -> pd.DataFrame:
 
         query = f"select {', '.join(columns)} from {table_name};"
-        res = pd.read_sql_query(query, self.connection, index_col=None)
+        res = pd.read_sql(query, self.connection, index_col=None)
         return res
-    
-db = MarketDB("localhost")
-res = db.get_table("water", "*")
-print(res)
