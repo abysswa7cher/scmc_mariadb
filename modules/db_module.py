@@ -94,5 +94,16 @@ class MarketDB():
     def get_table(self, table_name: str, columns: list) -> pd.DataFrame:
 
         query = f"select {', '.join(columns)} from {table_name};"
-        res = pd.read_sql(query, self.connection, index_col=None)
+        res = pd.read_sql(query, 
+                          self.connection, 
+                          index_col=None, 
+                          dtype={"kind": int,
+                                 "price": float,
+                                 "quantity": int,
+                                 "id": int,
+                                 "year": int,
+                                 "month": int,
+                                 "day": int,
+                                 "hour": int,
+                                 "minutes": int})
         return res
