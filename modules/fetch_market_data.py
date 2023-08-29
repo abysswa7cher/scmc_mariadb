@@ -74,8 +74,8 @@ def _parse_resource(json):
         year = date_posted[:4]
         month = date_posted[4:6]
         day = date_posted[6:8]
-        hour = f"{date_posted[8:10]}"
-        minutes = f"{date_posted[11:13]}"
+        hour = date_posted[8:10]
+        minutes = date_posted[11:13]
 
         data = {"kind":             int(last_ask['kind']),
                 "price":            float(last_ask['price']),
