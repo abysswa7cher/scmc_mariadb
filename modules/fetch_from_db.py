@@ -14,10 +14,11 @@ def construct_price_timeframe(table_name, year="*", month="*", day="*", hour="*"
     query_values = (table_name, year, month, day, hour)
 
     query = "select price, quantity, id from {}".format(table_name)
-    query = (query + (" where year='{}'".format(year) if year != "*" else "") + 
-            (" and month='{}'".format(month) if month != "*" else "") + 
-            (" and day='{}'".format(day) if day != "*" else "") + 
-            (" and hour='{}'".format(hour) if hour != "*" else ""))
+    query = (query + (" where year='{}'" .format(year)   if year  != "*" else "") + 
+                     (" and month='{}'"  .format(month)  if month != "*" else "") + 
+                     (" and day='{}'"    .format(day)    if day   != "*" else "") + 
+                     (" and hour='{}'"   .format(hour)   if hour  != "*" else ""))
+    
     # query = query + (" and month='{}'".format(month) if month != "*" else "")
     # query = query + (" and day='{}'".format(day) if day != "*" else "")
     # query = query + (" and hour='{}'".format(hour) if hour != "*" else "")
