@@ -1,7 +1,6 @@
 from db_module import MarketDB
-import pandas as pd, numpy as np
-import mplfinance as mpl
-import datetime, sys
+import pandas as pd
+import sys
 import mplfinance as fplt
 
 selection = tuple(map(int, input("Enter YYYY-MM-DD to select a date: ").split('-')))
