@@ -71,9 +71,7 @@ def parse_table_to_chart(df):
         hours = sorted(set["hour"].drop_duplicates().tolist())
         daily_df = pd.DataFrame(index=None) #columns=["Open", "High", "Low", "Close"], 
 
-        # print(f"\n\n//////////////////////////////////////////DAY: {set['day'][0]}////////////////////////////////////////////////////\n\n")
         for hr in hours:
-            # print(f"\n/////////////////////////////////////////HOUR: {hr}////////////////////////////////////////////////////\n")
             current_hour_set = set.loc[set["hour"]==hr]
             current_hour_set.sort_values(by="minutes", inplace=True)
         
@@ -118,59 +116,6 @@ def parse_table_to_chart(df):
         monthly_df = pd.concat([monthly_df, daily_df])
     print(monthly_df)
     return monthly_df
-    # monthly_df = pd.concat([monthly_df, daily_df])
-#region
-    #     data = pd.DataFrame.from_dict(data, orient="columns")
-
-    #     candle_chart = pd.concat([candle_chart, data], ignore_index=True)
-    # return candle_chart
-
-    # return day_sets[0] columns=["Open", "Close", "High", "Low"]
-
-    # candle_chart_list = []
-
-    # for day_set in day_sets:
-    #     day_set = day_set.sort_values(by="hour").reset_index()
-        
-        # day_dict = {"Date"  : [],
-        #             "Open"  : [],
-        #             "High"  : [],
-        #             "Low"   : [],
-        #             "Close" : []}
-
-        # year = day_set.loc["year"][0]
-
-        # month = day_set.loc["month"][0]
-        # month = "0" + str(month) if 0 <= month <= 9 else str(month)
-
-        # day = day_set.loc["day"][0]
-        # day = "0" + str(day) if 0 <= day <= 9 else str(day)
-
-        # hour = day_set.loc["hour"][0]
-        # hour = ("0" + str(hour)) if 1 <= hour <= 9 else ("00" if hour == 0 else str(hour))
-
-        # minutes = day_set.loc["minutes"][-1]                                                             #a = 1 if i < 100 else (2 if i > 100 else 0)
-        # minutes = ("0" + str(minutes)) if 1 <= minutes <= 9 else ("00" if minutes == 0 else str(minutes))   #hour = "0" + str(hour) if 1 <= hour <= 9 else ("00" if hour == 0 else hour)
-
-        # # date = pd.DatetimeIndex([pd.to_datetime(f"{year}{month}{day}{hour}{minutes}00", format='%Y%m%d%H%M%S')])
-
-        # print((year, month, day, hour, minutes))
-        # day_dict["Date"].append(date)
-        # day_dict["Open"].append(day_set.iloc[0]["price"])
-        # day_dict["High"].append(day_set["price"].max())
-        # day_dict["Low"].append(day_set["price"].min())
-        # day_dict["Close"].append(day_set.iloc[-1]["price"])
-        # print((day_dict["Open"], day_dict["High"], day_dict["Low"], day_dict["Close"]))
-        # day_df = pd.DataFrame([date[["Open", "High", "Low", "Close"]]], index=date["Date"], columns=["Open", "High", "Low", "Close"])
-        # print(day_df)
-        # day_series = pd.Series(day_dict)
-        # print(day_series)
-        # candle_chart = pd.concat([candle_chart, day_series], ignore_index=True)
-
-    
-    # print(f"{list_of_dates}")
-    return(candle_chart)
-#endregion
 
 df = construct_price_timeframe(table_name, **user_input)
 db.disconnect()
