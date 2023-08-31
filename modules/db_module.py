@@ -1,18 +1,15 @@
 import mariadb, sys, datetime, warnings
 from configparser import ConfigParser
-mariadb_config = {"host":"scmcmariadbsql.ddns.net", 
-                    "port": 3306, 
-                    "user":"remote_admin", 
-                    "password":"password", 
-                    "database":"scmc_dev"}
+
 import pandas as pd
 warnings.filterwarnings('ignore')
 class MarketDB():
 
-    def __init__(self, host) -> None:
+    def __init__(self) -> None: #, host
+        self.connected = False
         self.connection = None
         self.cursor = None
-        self.connect(host)
+        # self.connect(host)
 
     def connect(self, host):
         print(f"Connecting to {host}")
@@ -25,12 +22,14 @@ class MarketDB():
         if connection is not None:
             self.connection = connection
             self.cursor = self.connection.cursor()
+            self.connected = True
             print(f"Connected to {self.connection.server_name}, version: {self.connection.server_info}")
     
     def disconnect(self):
         # close the communication with the PostgreSQL
-        print("Disconnecting from PostgreSQL database.")
+        print(f"Disconnecting from {self.connection.server_name} database.")
         self.connection.close()
+        self.connected = False
 
     def create_table(self, table_name, cols):
         query = f"create table if not exists {table_name} ({', '.join(cols) if type(cols) != str else cols});"
@@ -107,3 +106,11 @@ class MarketDB():
                                  "hour": int,
                                  "minutes": int})
         return res
+    
+    def get_last_row(self, table_name):
+        try:
+            self.cursor.execute(f"select timestamp from {table_name} order by id desc limit 1")
+        except Exception:
+            raise
+            sys.exit()
+        return self.cursor.fetchone()

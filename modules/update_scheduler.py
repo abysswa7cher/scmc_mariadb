@@ -1,33 +1,33 @@
-from datetime import datetime, date
-import os
-import pandas as pd
-
+from datetime import datetime
 
 class UpdateScheduler():
-    def __init__(self, timeout):
+    def __init__(self, timeout, db, host):
+        self.db = db
+        self.host = host
         self.timeout = timeout*60
-        self.today = str(date.today())
+        self.last_timestamp = None
         self._read_last_timestamp()
         self._update_current_timestamp()
         self.update_time_delta = self.current_timestamp - self.last_timestamp
 
-        print(f'''Last update was on {self.last_update}\nTime since last update: {round(self.update_time_delta/60, 1) if self.update_time_delta > 1 else self.update_time_delta} {"min" if self.update_time_delta > 1 else "sec"}.''')
+        print(f'''Last update was on {self.last_update_date}\nTime since last update: {round(self.update_time_delta/60, 1) if self.update_time_delta > 1 else self.update_time_delta} {"min" if self.update_time_delta > 1 else "sec"}.''')
 
     def _update_current_timestamp(self):
         self.current_timestamp = datetime.now().timestamp()
     
     def _read_last_timestamp(self):
         try:
-            df = pd.read_csv("data/update_log.csv").iloc[-1]
-            self.last_timestamp = float(df.values[0])
-            self.last_update = datetime.fromtimestamp(self.last_timestamp)
-        except Exception as e:
-            print(e)
-            with open("data/update_log.csv", "w+") as f:
-                f.write("timestamp,date\n0,0\n")
-            self.last_timestamp = -1
-            self.last_update = -1
+            if not self.db.connected:
+                self.db.connect(self.host)
 
+            last_update = self.db.get_last_row("update_log")
+
+            self.last_timestamp = datetime.timestamp(last_update[0])
+            self.last_update_date = datetime.fromtimestamp(self.last_timestamp)
+        except Exception as e:
+            self.last_timestamp = -1
+            self.last_update_date = -1
+            raise
     def update(self):
         self._update_current_timestamp()
         self._read_last_timestamp()
@@ -50,8 +50,9 @@ class UpdateScheduler():
             return False
         
     def log_last_update(self):
-        self.last_update = datetime.now()
-        log = {"timestamp": self.current_timestamp, "date": self.last_update}
-        df = pd.DataFrame([log], index=None)
-        df.to_csv("data/update_log.csv", mode='a', index=False, header=False)
-        print(f"Last update saved as: {self.last_update}")
+        if not self.db.connected:
+            self.db.connect(self.host)
+            
+        self.last_update_date = datetime.now()
+        self.db.insert("update_log", ["timestamp"], [self.last_update_date])
+        print(f"Last update saved as: {self.last_update_date}")

@@ -4,6 +4,7 @@ import warnings
 import os, sys
 import modules.update_scheduler as us
 
+from datetime import datetime
 from threading import Thread
 from modules.db_module import MarketDB
 from modules.fetch_market_data import fetch_market_data
@@ -11,14 +12,14 @@ from modules.fetch_resource_reference import fetch_resource_reference
 
 warnings.filterwarnings('ignore')
 
-parser = argparse.ArgumentParser(description='A test program.')
+parser = argparse.ArgumentParser(description='')
 parser.add_argument("-U",
                     "--update_timeout",
                     nargs='?',
                     const=1,
                     default=10,
                     help="Sets the amount of minutes to pass between updates.",
-                    type=int)
+                    type=float)
 
 parser.add_argument("-H",
                     "--host",
@@ -31,8 +32,9 @@ parser.add_argument("-H",
 args = parser.parse_args()
 
 def update_and_post_data_to_db():
-  DB = MarketDB(args.host)
-  update_scheduler = us.UpdateScheduler(args.update_timeout)
+  DB = MarketDB()
+  # DB.connect(args.host)#args.host
+  update_scheduler = us.UpdateScheduler(args.update_timeout, DB, args.host)
   
   if not os.path.isfile("data/resources.csv"):
     print("Resources reference file not found, loading a new one...")
@@ -46,12 +48,9 @@ def update_and_post_data_to_db():
     if update_scheduler.update():
         print("\033[2KUpdating and posting to DB...", end="\r", flush=True)
         
-        DB.connect(args.host)
         try:
-          if fetch_market_data(DB) == -1:
-            update_scheduler.log_last_update()
-
-          DB.disconnect()
+          fetch_market_data(DB)
+          update_scheduler.log_last_update()
         except Exception as e:
           print(e)
           sys.exit(1)
