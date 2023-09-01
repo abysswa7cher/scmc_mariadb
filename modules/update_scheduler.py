@@ -1,4 +1,5 @@
 from datetime import datetime
+from mariadb import InterfaceError, IntegrityError
 
 class UpdateScheduler():
     def __init__(self, timeout, db, host):
@@ -24,10 +25,10 @@ class UpdateScheduler():
 
             self.last_timestamp = datetime.timestamp(last_update[0])
             self.last_update_date = datetime.fromtimestamp(self.last_timestamp)
-        except Exception as e:
-            self.last_timestamp = -1
-            self.last_update_date = -1
-            raise
+        except InterfaceError:
+            self.db.connect(self.host)
+            self._read_last_timestamp()
+
     def update(self):
         self._update_current_timestamp()
         self._read_last_timestamp()
@@ -50,9 +51,13 @@ class UpdateScheduler():
             return False
         
     def log_last_update(self):
-        if not self.db.connected:
-            self.db.connect(self.host)
-            
-        self.last_update_date = datetime.now()
-        self.db.insert("update_log", ["timestamp"], [self.last_update_date])
-        print(f"Last update saved as: {self.last_update_date}")
+        try:
+            if not self.db.connected:
+                self.db.connect(self.host)
+                
+            self.last_update_date = datetime.now()
+            self.db.insert("update_log", ["timestamp"], [self.last_update_date])
+            print(f"Last update saved as: {self.last_update_date}")
+        except InterfaceError:
+            self.db.connect()
+            self.log_last_update()
