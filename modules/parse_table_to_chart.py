@@ -1,7 +1,10 @@
+import base64
 import pandas as pd
 import mplfinance as fplt
 import io
 import IPython.display as IPydisplay
+from datetime import datetime
+from db_module import MarketDB
 
 def construct_price_timeframe(db, table_name, date):
 
@@ -18,15 +21,10 @@ def construct_price_timeframe(db, table_name, date):
 
             hour = date[3] if len(date) > 3 else "*"
             print(f"day: {hour}")
-        elif type(date) == str:
-            year = date
-            month, day, hour, = "*", "*", "*"
-            print(f"Only year {year} was selected.")
-
-    # year = user_input["year"] if "year" in kwargs_keys else "*"
-    # month = user_input["month"] if "month" in kwargs_keys else "*"
-    # day = user_input["day"] if "day" in kwargs_keys else "*"
-    # hour = user_input["hour"] if "hour" in kwargs_keys else "*"
+        # elif type(date) == str:
+        #     year = date
+        #     month, day, hour, = "*", "*", "*"
+        #     print(f"Only year {year} was selected.")
 
     print((year, month, day, hour))
 
@@ -57,19 +55,23 @@ def parse_table_to_df(db, table_name, date):
 
     for i, set in enumerate(day_sets):
         hours = sorted(set["hour"].drop_duplicates().tolist())
-        daily_df = pd.DataFrame(index=None) #columns=["Open", "High", "Low", "Close"], 
+        daily_df = pd.DataFrame(index=None)
 
-        for hr in hours:
+        for j, hr in enumerate(hours):
             current_hour_set = set.loc[set["hour"]==hr]
             current_hour_set.sort_values(by="minutes", inplace=True)
         
             hourly_data = {}
             
-            open = current_hour_set.iloc[0]["price"]
+            if j > 0:
+                open = daily_df.iloc[-1]["Close"]
+            else:
+                open = current_hour_set.iloc[0]["price"]
+
             high = current_hour_set["price"].max()
             low = current_hour_set["price"].min()
             close = current_hour_set.iloc[-1]["price"]
-
+            
             year = set['year'][0]
 
             month = set['month'][0]
@@ -114,9 +116,6 @@ def draw_chart(db, table_name=None, date=None):
         else: break
     
     while True:
-        print(date is None)
-        print(type(date) != tuple)
-        print(date == "")
         if date is None or type(date) != tuple:
             if type(date) == str:
                 date = tuple(map(int, date.split('-')))
@@ -130,13 +129,15 @@ def draw_chart(db, table_name=None, date=None):
 
     df_date = df.index[-1]
 
-    buf = io.BytesIO()
-    img_name = f"{table_name} {str(df_date)}"
+    buffer = io.BytesIO()
+    img_name = f"{table_name} ({df_date})"
     fplt.plot(  df,
                 type='candle',
                 style='yahoo',
                 title=img_name,
-                ylabel='Price ($)', mav=(9, 21, 60), tight_layout=True, figratio=(10, 6), savefig=f"{table_name}.png")#, 
-    
-    # _ = buf.seek(0)
-    # IPydisplay.Image(buf.read())
+                ylabel='Price ($)', 
+                mav=(7, 21), tight_layout=True, volume=True, savefig=buffer)#, , figratio=(10, 6)
+    buffer.seek(0)
+    buf_png = base64.b64encode(buffer.getvalue()).decode()
+
+    return "<img src='data:image/png;base64," + buf_png + "'/>"
