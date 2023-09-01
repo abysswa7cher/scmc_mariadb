@@ -1,3 +1,4 @@
 old/
 __pycache__/
 modules/__pycache__/
+*.png
