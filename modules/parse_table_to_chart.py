@@ -1,44 +1,33 @@
 from db_module import MarketDB
 import pandas as pd
-import sys
 import mplfinance as fplt
 
-selection = tuple(map(int, input("Enter YYYY-MM-DD to select a date: ").split('-')))
-
-while True:
-    table_name = input("Enter resource name: ")
-
-    if table_name == "":
-        print("Please enter a valid resource name: ")
-    else: break
-
-user_input = {}
-
-try: 
-    user_input["year"] = selection[0]
-    print(f"year: {user_input['year']}")
-except: 
-    print("You haven't selected a year, aborting.")
-    sys.exit(1)
-try: 
-    user_input["month"] = selection[1]
-    print(f"month: {user_input['month']}")
-except: print("You haven't selected a month.")
-
-try: 
-    user_input["day"] = selection[2]
-    print(f"day: {user_input['day']}")
-except: print("You haven't selected a day.")
-
 db = MarketDB()
-db.connect("mariadb")
-def construct_price_timeframe(table_name="power", **kwargs):
+def construct_price_timeframe(table_name):
+    selection = tuple(map(int, input("Enter YYYY-MM-DD to select a date: ").split('-')))
 
-    kwargs_keys = kwargs.keys()
-    year = kwargs["year"] if "year" in kwargs_keys else "*"
-    month = kwargs["month"] if "month" in kwargs_keys else "*"
-    day = kwargs["day"] if "day" in kwargs_keys else "*"
-    hour = kwargs["hour"] if "hour" in kwargs_keys else "*"
+    user_input = {}
+
+    try: 
+        user_input["year"] = selection[0]
+        print(f"year: {user_input['year']}")
+    except: 
+        print("You haven't selected a year, aborting.")
+    try: 
+        user_input["month"] = selection[1]
+        print(f"month: {user_input['month']}")
+    except: print("You haven't selected a month.")
+
+    try: 
+        user_input["day"] = selection[2]
+        print(f"day: {user_input['day']}")
+    except: print("You haven't selected a day.")
+
+    kwargs_keys = user_input.keys()
+    year = user_input["year"] if "year" in kwargs_keys else "*"
+    month = user_input["month"] if "month" in kwargs_keys else "*"
+    day = user_input["day"] if "day" in kwargs_keys else "*"
+    hour = user_input["hour"] if "hour" in kwargs_keys else "*"
 
     print((year, month, day, hour))
 
@@ -48,13 +37,19 @@ def construct_price_timeframe(table_name="power", **kwargs):
                      (" and day='{}'"    .format(day)    if day   != "*" else "") + 
                      (" and hour='{}'"   .format(hour)   if hour  != "*" else ""))
     
-    print(query)
-
     df = pd.read_sql(query, db.connection, index_col=None, parse_dates=True, dtype={"year": int, "month": int, "day": int, "hour": int})
-    print(df)
+    
     return df
 
-def parse_table_to_chart(df):
+def parse_table_to_df(table_name):
+
+    while True:
+        if table_name == "":
+            print("Please enter a valid resource name: ")
+        else: break
+
+    df = construct_price_timeframe(table_name)
+
     df.drop_duplicates(["id"], keep="first", inplace=True)
 
     day_sets = list()
@@ -117,12 +112,19 @@ def parse_table_to_chart(df):
     print(monthly_df)
     return monthly_df
 
-df = construct_price_timeframe(table_name, **user_input)
-db.disconnect()
-df = parse_table_to_chart(df)
+def draw_chart():
+    db.connect("mariadb")
 
-fplt.plot(  df,
+    table_name = input("Enter resource name: ")
+    df = parse_table_to_df(table_name)
+
+    db.disconnect()
+
+    fplt.plot(  df,
             type='candle',
             style='yahoo',
             title=f'{table_name}',
-            ylabel='Price ($)', mav=(9, 21, 60), tight_layout=True, figratio=(10, 6))
+            ylabel='Price ($)', mav=(9, 21, 60), tight_layout=False, figratio=(10, 6), 
+            savefig=dict(fname=f"{table_name}", dpi=300, pad_inches = 0.25))
+
+draw_chart()
