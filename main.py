@@ -3,13 +3,13 @@ import argparse
 import warnings
 import os, sys
 import modules.update_scheduler as us
-
+import multiprocessing
 from datetime import datetime
 from threading import Thread
 from modules.db_module import MarketDB
 from modules.fetch_market_data import fetch_market_data
 from modules.fetch_resource_reference import fetch_resource_reference
-
+from modules.parse_table_to_chart import draw_chart
 warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description='')
@@ -51,12 +51,14 @@ def update_and_post_data_to_db():
         try:
           fetch_market_data(DB)
           update_scheduler.log_last_update()
+          # job = multiprocessing.Process(target=draw_chart(DB, table_name="crude_oil", date=datetime.now().strftime("%Y-%m-%d")),args=())
+          # job.start()
         except Exception as e:
           print(e)
           sys.exit(1)
 
-def main():
-  ts = [Thread(target=update_and_post_data_to_db)]
+def new_mplthread(func):
+  ts = [Thread(target=func)]
   for t in ts:
     t.start()
   for t in ts:

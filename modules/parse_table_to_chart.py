@@ -1,33 +1,32 @@
-from db_module import MarketDB
 import pandas as pd
 import mplfinance as fplt
+import io
+import IPython.display as IPydisplay
 
-db = MarketDB()
-def construct_price_timeframe(table_name):
-    selection = tuple(map(int, input("Enter YYYY-MM-DD to select a date: ").split('-')))
+def construct_price_timeframe(db, table_name, date):
 
-    user_input = {}
+    if date is not None:
+        if type(date) == tuple:
+            year = date[0] if len(date) > 0 else "*"
+            print(f"year: {year}")
 
-    try: 
-        user_input["year"] = selection[0]
-        print(f"year: {user_input['year']}")
-    except: 
-        print("You haven't selected a year, aborting.")
-    try: 
-        user_input["month"] = selection[1]
-        print(f"month: {user_input['month']}")
-    except: print("You haven't selected a month.")
+            month = date[1] if len(date) > 1 else "*"
+            print(f"month: {month}")
 
-    try: 
-        user_input["day"] = selection[2]
-        print(f"day: {user_input['day']}")
-    except: print("You haven't selected a day.")
+            day = date[2] if len(date) > 2 else "*"
+            print(f"day: {day}")
 
-    kwargs_keys = user_input.keys()
-    year = user_input["year"] if "year" in kwargs_keys else "*"
-    month = user_input["month"] if "month" in kwargs_keys else "*"
-    day = user_input["day"] if "day" in kwargs_keys else "*"
-    hour = user_input["hour"] if "hour" in kwargs_keys else "*"
+            hour = date[3] if len(date) > 3 else "*"
+            print(f"day: {hour}")
+        elif type(date) == str:
+            year = date
+            month, day, hour, = "*", "*", "*"
+            print(f"Only year {year} was selected.")
+
+    # year = user_input["year"] if "year" in kwargs_keys else "*"
+    # month = user_input["month"] if "month" in kwargs_keys else "*"
+    # day = user_input["day"] if "day" in kwargs_keys else "*"
+    # hour = user_input["hour"] if "hour" in kwargs_keys else "*"
 
     print((year, month, day, hour))
 
@@ -41,23 +40,17 @@ def construct_price_timeframe(table_name):
     
     return df
 
-def parse_table_to_df(table_name):
+def parse_table_to_df(db, table_name, date):
 
-    while True:
-        if table_name == "":
-            print("Please enter a valid resource name: ")
-        else: break
-
-    df = construct_price_timeframe(table_name)
+    df = construct_price_timeframe(db, table_name, date)
 
     df.drop_duplicates(["id"], keep="first", inplace=True)
+    df.sort_values(by=["month", "day"], ascending=[True, True])
 
     day_sets = list()
-    for day in sorted(df["day"].drop_duplicates().tolist()):
+    for day in df["day"].drop_duplicates().tolist():
         day_set = df.loc[df["day"]==day].sort_values(by="hour").reset_index()
         day_sets.append(day_set)
-
-
 
     monthly_df = pd.DataFrame(index=None)
 
@@ -112,19 +105,38 @@ def parse_table_to_df(table_name):
     print(monthly_df)
     return monthly_df
 
-def draw_chart():
+def draw_chart(db, table_name=None, date=None):
     db.connect("mariadb")
 
-    table_name = input("Enter resource name: ")
-    df = parse_table_to_df(table_name)
+    while True:
+        if table_name is None or type(table_name) != str or table_name == "":
+            table_name = input("Enter resource name: ")
+        else: break
+    
+    while True:
+        print(date is None)
+        print(type(date) != tuple)
+        print(date == "")
+        if date is None or type(date) != tuple:
+            if type(date) == str:
+                date = tuple(map(int, date.split('-')))
+            else:
+                date = tuple(map(int, input("Enter YYYY-MM-DD to select a date: ").split('-')))
+        else: break
+
+    df = parse_table_to_df(db, table_name, date)
 
     db.disconnect()
 
-    fplt.plot(  df,
-            type='candle',
-            style='yahoo',
-            title=f'{table_name}',
-            ylabel='Price ($)', mav=(9, 21, 60), tight_layout=False, figratio=(10, 6), 
-            savefig=dict(fname=f"{table_name}", dpi=300, pad_inches = 0.25))
+    df_date = df.index[-1]
 
-draw_chart()
+    buf = io.BytesIO()
+    img_name = f"{table_name} {str(df_date)}"
+    fplt.plot(  df,
+                type='candle',
+                style='yahoo',
+                title=img_name,
+                ylabel='Price ($)', mav=(9, 21, 60), tight_layout=True, figratio=(10, 6), savefig=f"{table_name}.png")#, 
+    
+    # _ = buf.seek(0)
+    # IPydisplay.Image(buf.read())
